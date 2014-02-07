@@ -7,15 +7,17 @@ using System.Collections.Generic;
 public class microphoneinput : MonoBehaviour {
 	private const int conversionSampleRate = 22050;
 
-	public float sensitivity = 100.0f;
-	public float loudness = 0.0f;
-	public float frequency = 0.0f;
-	public int samplerate = 11024;
+	private float sensitivity = 100.0f;
+	private float frequency = 0.0f;
+	private int samplerate = 11024;
 	private int frequencyBands = 8192;
 	private float indexToHertz;
 
-	private int[] positions;
+	private const int windowSize = 12;
 
+	private Queue<float>window;
+
+	public SpriteRenderer indicator;
 
 	void Start() {
 		audio.clip = Microphone.Start(null, true, 10, samplerate);
@@ -25,16 +27,45 @@ public class microphoneinput : MonoBehaviour {
 		audio.Play(); // Play the audio source!
 
 		indexToHertz = ((float)conversionSampleRate) / ((float)frequencyBands);
+		window = new Queue<float> ();
+
 	}
 	
 	void Update(){
-		loudness = GetAveragedVolume() * sensitivity;
 		//frequency = GetFundamentalFrequency();
-		float[] results = GetMainFrequencies (2000f);
+		float[] results = GetMainFrequencies (40f, 1100f);
 
-		foreach(float i in results){
-			Debug.Log(i);
+		Array.Sort (results);
+
+
+		if(results.Length >0){
+			Debug.Log(results[0]);
+			setIndicatorColor (results[0]);
 		}
+		else{
+			indicator.color = Color.white;
+		}
+	}
+
+	private void setIndicatorColor(float frequency){
+		window.Enqueue (frequency);
+		if(window.Count> windowSize){
+			window.Dequeue();
+		}
+		float sum = 0;
+
+		foreach(float freq in window){
+			sum+=freq;
+		}
+		float freqAverage = sum / window.Count;
+
+
+		float period = 0.02f;
+
+		float red   = (float)Math.Sin(period*freqAverage + 0);
+		float green = (float)Math.Sin(period*freqAverage + 2);
+		float blue  = (float)Math.Sin(period*freqAverage + 4);
+		indicator.color = new Color (red, green, blue);			
 	}
 	
 	private float GetAveragedVolume()
@@ -68,15 +99,15 @@ public class microphoneinput : MonoBehaviour {
 		return fundamentalFrequency;
 	}
 
-	float[] GetMainFrequencies(float frequencyCutoff){
-		int maxIndex = (int)(frequencyCutoff / indexToHertz);
-
+	float[] GetMainFrequencies(float low, float high){
+		int maxIndex = (int)(high / indexToHertz);
+		int minIndex = (int)(low / indexToHertz);
 		float[] data = new float[frequencyBands];
 		audio.GetSpectrumData(data,0,FFTWindow.BlackmanHarris);
 		List<KeyValuePair<int,float>> candidates = new List<KeyValuePair<int,float>> ();
-		for (int j = 1; j < maxIndex; j++)
+		for (int j = minIndex; j < maxIndex; j++)
 		{
-			if (data[j] >  0.02f)
+			if (data[j] >  0.0006f)
 			{
 				candidates.Add(new KeyValuePair<int,float>(j, data[j]));
 			}
