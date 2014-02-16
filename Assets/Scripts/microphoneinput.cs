@@ -32,11 +32,24 @@ public class microphoneinput : MonoBehaviour {
 	}
 	
 	void Update(){
-		//frequency = GetFundamentalFrequency();
-		float[] results = GetMainFrequencies (40f, 1100f);
+		//colorByFrequency (GetMainFrequencies (40f, 1100f));
+		changeByLowPass ();
+	}
 
-		Array.Sort (results);
+	private void changeByLowPass(){
+		float[] data = new float[frequencyBands];
+		audio.GetSpectrumData(data,0,FFTWindow.BlackmanHarris);
 
+		float sum = 0;
+		for(int i = frequencyBands/4; i< frequencyBands/1.5f; i++){
+			sum += data[i];
+		}
+		float size = sum * 12f;
+		indicator.transform.localScale = new Vector3 (size, size, 1);
+	}
+
+
+	private void colorByFrequency(float[] results){
 
 		if(results.Length >0){
 			Debug.Log(results[0]);
@@ -122,6 +135,7 @@ public class microphoneinput : MonoBehaviour {
 		for(int i = 0; i<candidates.Count; i++){
 			results[i] = ((float)candidates[i].Key) * indexToHertz;
 		}
+		Array.Sort (results);
 		return results;
 	}
 
