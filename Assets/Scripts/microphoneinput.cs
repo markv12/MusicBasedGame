@@ -12,6 +12,8 @@ public class microphoneinput : MonoBehaviour {
 	private int samplerate = 11024;
 	private int frequencyBands = 8192;
 	private float indexToHertz;
+	public float lowBound;
+	public float highBound;
 
 	private const int windowSize = 12;
 
@@ -41,11 +43,13 @@ public class microphoneinput : MonoBehaviour {
 		audio.GetSpectrumData(data,0,FFTWindow.BlackmanHarris);
 
 		float sum = 0;
-		for(int i = frequencyBands/4; i< frequencyBands/1.5f; i++){
+		float lowIndex = lowBound / indexToHertz;
+		float highIndex = highBound / indexToHertz;
+		for(int i = (int)lowIndex; i< (int)highIndex; i++){
 			sum += data[i];
 		}
-		float size = sum * 12f;
-		indicator.transform.localScale = new Vector3 (size, size, 1);
+		float cllr = sum * 3f;
+		indicator.color = new Color (cllr,cllr,cllr);
 	}
 
 
